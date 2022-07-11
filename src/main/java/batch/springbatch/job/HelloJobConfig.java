@@ -17,31 +17,31 @@ import org.springframework.context.annotation.Configuration;
 @RequiredArgsConstructor
 public class HelloJobConfig {
 
-    private final JobBuilderFactory jobBuilderFactory;
-    private final StepBuilderFactory stepBuilderFactory;
-
-    @Bean("helloJob")
-    public Job helloJob(Step helloStep){
-        return jobBuilderFactory.get("helloJob")
-                .incrementer(new RunIdIncrementer())
-                .start(helloStep)
-                .build();
-    }
-
-    @JobScope
-    @Bean("helloStep")
-    public Step helloStep(Tasklet tasklet) {
-        return stepBuilderFactory.get("helloStep")
-                .tasklet(tasklet)
-                .build();
-    }
-
-    @StepScope
-    @Bean
-    public Tasklet tasklet() {
-        return ((contribution, chunkContext) -> {
-           System.out.println("hello Spring Batch");
-            return RepeatStatus.FINISHED;
-        });
-    }
+//    private final JobBuilderFactory jobBuilderFactory;
+//    private final StepBuilderFactory stepBuilderFactory;
+//
+//    @Bean("helloJob")
+//    public Job helloJob(Step helloStep){
+//        return jobBuilderFactory.get("helloJob")
+//                .incrementer(new RunIdIncrementer())
+//                .start(helloStep)
+//                .build();
+//    }
+//
+//    @JobScope
+//    @Bean("helloStep")
+//    public Step helloStep(Tasklet tasklet) {
+//        return stepBuilderFactory.get("helloStep")
+//                .tasklet(tasklet)
+//                .build();
+//    }
+//
+//    @StepScope
+//    @Bean
+//    public Tasklet tasklet() {
+//        return ((contribution, chunkContext) -> {
+//           System.out.println("hello Spring Batch");
+//            return RepeatStatus.FINISHED;
+//        });
+//    }
 }

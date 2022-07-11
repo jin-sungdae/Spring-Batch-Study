@@ -44,13 +44,13 @@ public class PlainTextJobConfig {
                 .build();
     }
 
-    @JobScope
-    @Bean("plainTextStep")
-    public Step plainTextStep(Tasklet tasklet) {
-        return stepBuilderFactory.get("plainTextStep")
-                .tasklet(tasklet)
-                .build();
-    }
+//    @JobScope
+//    @Bean("plainTextStep")
+//    public Step plainTextStep(Tasklet tasklet) {
+//        return stepBuilderFactory.get("plainTextStep")
+//                .tasklet(tasklet)
+//                .build();
+//    }
 
     @JobScope
     @Bean("plainTextStep")
@@ -81,7 +81,7 @@ public class PlainTextJobConfig {
     @StepScope
     @Bean
     public ItemProcessor<PlainText, String> plainTextProcessor(){
-        return item -> "processed " + item.getText();
+        return item -> "processed ++++ " + item.getText();
     }
 
     @StepScope
@@ -89,7 +89,7 @@ public class PlainTextJobConfig {
     public ItemWriter<String> plainTextWriter() {
         return items -> {
             items.forEach(item -> resultTextRepository.save(new ResultText(null, item)));
-            System.out.println("======== chunk is finished");
+            System.out.println("======== chunk is finished ===================");
         };
     }
 
