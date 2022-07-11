@@ -11,7 +11,7 @@ spring:
     activate:
       on-profile: local
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/house
+    url: jdbc:mysql://127.0.0.1:3306/house?characterEncoding=UTF-8&serverTimezone=UTC&rewriteBatchedStatements=true
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
     password: 5131
@@ -19,10 +19,10 @@ spring:
     show-sql: true
     generate-ddl: false
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
   batch:
     jdbc:
-      initialize-schema: never
+      initialize-schema: NEVER
 #  sql:
 #    init:
 #      data-locations: classpath:person.sql
