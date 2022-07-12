@@ -207,9 +207,9 @@ public class ItemWriterConfig {
     @Bean
     public Step jpaWriterStep() throws Exception {
         return stepBuilderFactory.get("jpaWriterStep")
-                .<Person, Person>chunk(10)
+                .<Person, ResultText>chunk(10)
                 .reader(this.jpaCursorItemReader())
-                .processor(itemProcesor2())
+//                .processor(itemProcesor2())
                 .writer(jpaItemWriter2())
                 .build();
     }
@@ -242,12 +242,12 @@ public class ItemWriterConfig {
         return itemReader;
     }
 
-    private ItemProcessor<? super Person, ? extends Person> itemProcesor2() {
-        return item -> {
-            if (item.getId() % 2 == 0) {
-                return item.getId();
-            }
-            return null;
-        };
-    }
+//    private ItemProcessor<? super Person, ? extends ResultText> itemProcesor2() {
+//        return item -> {
+//            if (item.getId() % 2 == 0) {
+//                return item;
+//            }
+//            return null;
+//        };
+//    }
 }
