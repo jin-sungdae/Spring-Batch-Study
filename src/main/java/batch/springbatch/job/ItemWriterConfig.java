@@ -1,19 +1,27 @@
 package batch.springbatch.job;
 
 import batch.springbatch.core.domain.Calendar;
+import batch.springbatch.core.domain.DayType;
 import batch.springbatch.core.domain.Person;
+import batch.springbatch.core.domain.ResultText;
 import batch.springbatch.core.repository.PersonRepository;
+import batch.springbatch.job.validator.DayOfWeek;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
+import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider;
 import org.springframework.batch.item.database.JdbcBatchItemWriter;
+import org.springframework.batch.item.database.JpaCursorItemReader;
+import org.springframework.batch.item.database.JpaItemWriter;
 import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
+import org.springframework.batch.item.database.builder.JpaCursorItemReaderBuilder;
+import org.springframework.batch.item.database.builder.JpaItemWriterBuilder;
 import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
 import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
@@ -21,7 +29,12 @@ import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.data.annotation.LastModifiedDate;
 
+import javax.persistence.Column;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.sql.DataSource;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -34,13 +47,16 @@ public class ItemWriterConfig {
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
     private final DataSource dataSource;
+    private final EntityManagerFactory entityManagerFactory;
 
     public ItemWriterConfig(JobBuilderFactory jobBuilderFactory,
                             StepBuilderFactory stepBuilderFactory,
-                            DataSource dataSource) {
+                            DataSource dataSource,
+                            EntityManagerFactory entityManagerFactory) {
         this.jobBuilderFactory = jobBuilderFactory;
         this.stepBuilderFactory = stepBuilderFactory;
         this.dataSource = dataSource;
+        this.entityManagerFactory = entityManagerFactory;
     }
 
     @Bean
@@ -48,7 +64,9 @@ public class ItemWriterConfig {
         return this.jobBuilderFactory.get("itemWriterJob")
                 .incrementer(new RunIdIncrementer())
                 //.start(this.csvItemWriterStep())
-                .start(this.jdbcBatchItemWriterStep())
+                //.start(this.jdbcBatchItemWriterStep())
+                //.start(this.jpaItemWriterStep())
+                .start(this.jpaWriterStep())
                 .build();
     }
 
@@ -132,7 +150,7 @@ public class ItemWriterConfig {
         JdbcBatchItemWriter<Calendar> itemWriter = new JdbcBatchItemWriterBuilder<Calendar>()
                 .dataSource(dataSource)
                 .itemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>())
-                .sql("insert into calendar(date) values(:date)")
+                .sql("insert into calendar(date, day_type) values(:date, day_type)")
                 .build();
 
         itemWriter.afterPropertiesSet();
@@ -146,11 +164,90 @@ public class ItemWriterConfig {
 
     private List<Calendar> getItems2() {
         List<Calendar> items = new ArrayList<>();
+        if (DayOfWeek.getDayOfWeek() == 1 || DayOfWeek.getDayOfWeek() == 7)
+            items.add(new Calendar( LocalDate.now(), DayType.HOLIDAY, LocalDateTime.now(), LocalDateTime.now(), "create_id", "update_id"));
+        else
+            items.add(new Calendar( LocalDate.now(), DayType.STUDYDAY, LocalDateTime.now(), LocalDateTime.now(), "create_id", "update_id"));
 
-        for (int i = 0; i < 1; i++) {
-            items.add(new Calendar(i + 1L, LocalDate.now()));
-        }
 
         return items;
+    }
+
+    // *******************************************jpaItemWriter로 설정!!***************************************************//
+
+    @Bean
+    public Step jpaItemWriterStep() throws Exception {
+        return stepBuilderFactory.get("jpaItemWriterStep")
+                .<Calendar, Calendar>chunk(10)
+                .reader(itemReader2())
+                .writer(jpaItemWriter())
+                .build();
+    }
+
+    private ItemWriter<Calendar> jpaItemWriter() throws Exception {
+        JpaItemWriter<Calendar> itemWriter = new JpaItemWriterBuilder<Calendar>()
+                .entityManagerFactory(entityManagerFactory)
+                .build();
+        itemWriter.afterPropertiesSet();
+
+        return itemWriter;
+    }
+
+    // *******************************************READER***************************************************//
+
+    private ItemWriter<? super ResultText> jpaItemWriter2() throws Exception {
+        JpaItemWriter<ResultText> itemWriter = new JpaItemWriterBuilder<ResultText>()
+                .entityManagerFactory(entityManagerFactory)
+                .build();
+        itemWriter.afterPropertiesSet();
+
+        return itemWriter;
+    }
+
+    @Bean
+    public Step jpaWriterStep() throws Exception {
+        return stepBuilderFactory.get("jpaWriterStep")
+                .<Person, Person>chunk(10)
+                .reader(this.jpaCursorItemReader())
+                .processor(itemProcesor2())
+                .writer(jpaItemWriter2())
+                .build();
+    }
+
+//    private ItemReader<Calendar> itemReader2() {
+//        return new CustomItemReader<>(getItems2());
+//    }
+//
+//    private List<Calendar> getItems2() {
+//        List<Calendar> items = new ArrayList<>();
+//        if (DayOfWeek.getDayOfWeek() == 1 || DayOfWeek.getDayOfWeek() == 7)
+//            items.add(new Calendar( LocalDate.now(), DayType.HOLIDAY, LocalDateTime.now(), LocalDateTime.now(), "create_id", "update_id"));
+//        else
+//            items.add(new Calendar( LocalDate.now(), DayType.STUDYDAY, LocalDateTime.now(), LocalDateTime.now(), "create_id", "update_id"));
+//
+//
+//        return items;
+//    }
+
+
+
+    private JpaCursorItemReader<Person> jpaCursorItemReader() throws Exception {
+        JpaCursorItemReader<Person> itemReader = new JpaCursorItemReaderBuilder<Person>()
+                .name("jpaCursorItemReader")
+                .entityManagerFactory(entityManagerFactory)
+                .queryString("select p from Person p")
+                .build();
+        itemReader.afterPropertiesSet();
+
+        return itemReader;
+    }
+
+    private ItemProcessor<? super Person, ? extends Person> itemProcesor2() {
+        return item -> {
+            if (item.getId() % 2 == 0) {
+                return item.getId();
+            }
+            return null;
+        };
     }
 }

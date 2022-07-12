@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "calendar")
-public class Calendar {
+public class Calendar extends BaseEntity {
 
 
     @Id
@@ -24,5 +24,18 @@ public class Calendar {
 
     LocalDate date;
 
+    @Enumerated(value = EnumType.STRING)
+    @Column(nullable = false)
+    DayType dayType;
+
+    public Calendar( LocalDate now, DayType holiday, LocalDateTime now1, LocalDateTime now2, String create_Id, String update_Id) {
+        super.setCreatedAt(now1);
+        super.setCreateId(create_Id);
+        super.setUpdatedAt(now2);
+        super.setUpdateId(update_Id);
+
+        this.date = now;
+        this.dayType = holiday;
+    }
 
 }
