@@ -19,10 +19,12 @@ spring:
     show-sql: true
     generate-ddl: false
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
+
   batch:
     jdbc:
       initialize-schema: NEVER
+
 #  sql:
 #    init:
 #      data-locations: classpath:person.sql
